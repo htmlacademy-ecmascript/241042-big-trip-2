@@ -269,7 +269,6 @@ export default class EditPointView extends AbstractStatefulView {
 
   setSaving() {
     this.updateElement({
-      isDisabled: true,
       isSaving: true,
       isDeleting: false,
     });
@@ -277,7 +276,6 @@ export default class EditPointView extends AbstractStatefulView {
 
   setDeleting() {
     this.updateElement({
-      isDisabled: true,
       isSaving: false,
       isDeleting: true,
     });
@@ -285,7 +283,6 @@ export default class EditPointView extends AbstractStatefulView {
 
   resetState() {
     this.updateElement({
-      isDisabled: false,
       isSaving: false,
       isDeleting: false,
     });

@@ -21,7 +21,7 @@ export default class BoardPresenter {
   #offersModel = null;
   #filterModel = null;
   #sortModel = null;
-  #onFiltersUpdate = null;
+  #onDataUpdate = null;
 
   #boardComponent = new EventListView();
   #sortComponent = null;
@@ -39,7 +39,7 @@ export default class BoardPresenter {
     offersModel,
     filterModel,
     sortModel,
-    onFiltersUpdate,
+    onDataUpdate,
   }) {
     this.#boardContainer = boardContainer;
     this.#pointsModel = pointsModel;
@@ -47,7 +47,7 @@ export default class BoardPresenter {
     this.#offersModel = offersModel;
     this.#filterModel = filterModel;
     this.#sortModel = sortModel;
-    this.#onFiltersUpdate = onFiltersUpdate;
+    this.#onDataUpdate = onDataUpdate;
   }
 
   get #points() {
@@ -80,7 +80,7 @@ export default class BoardPresenter {
 
     this.#filterModel.setFilter(FilterType.EVERYTHING);
     this.#sortModel.setSort(SortType.DAY);
-    this.#onFiltersUpdate();
+    this.#onDataUpdate();
 
     this.#resetAllPointViews();
     this.#closeCreationForm();
@@ -97,6 +97,7 @@ export default class BoardPresenter {
     if (evt.key === 'Escape') {
       evt.preventDefault();
       this.#closeCreationForm();
+      this.#clearBoard();
       this.#renderBoard();
       document.removeEventListener('keydown', this.#creationEscKeyDownHandler);
     }
@@ -224,6 +225,7 @@ export default class BoardPresenter {
 
   #handleCreationFormClose = () => {
     this.#closeCreationForm();
+    this.#clearBoard();
     this.#renderBoard();
     document.removeEventListener('keydown', this.#creationEscKeyDownHandler);
   };
@@ -279,18 +281,20 @@ export default class BoardPresenter {
           this.#pointPresenters
             .find((presenter) => presenter.id === updatedPoint.id)
             ?.update(updatedPoint);
+          this.#renderPointsOrder();
+          this.#onDataUpdate();
           return updatedPoint;
         }
         case UserAction.DELETE_POINT:
           await this.#pointsModel.deletePoint(payload);
-          this.#onFiltersUpdate();
+          this.#onDataUpdate();
           this.#clearBoard();
           this.#renderBoard();
           return null;
         case UserAction.ADD_POINT:
           await this.#pointsModel.addPoint(payload);
           this.#closeCreationForm();
-          this.#onFiltersUpdate();
+          this.#onDataUpdate();
           this.#clearBoard();
           this.#renderBoard();
           return null;
