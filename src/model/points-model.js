@@ -18,8 +18,20 @@ export default class PointsModel {
     return this.#points.find((point) => point.id === id);
   }
 
-  addPoint(point) {
-    this.#points.push(point);
+  // async addPoint(point) {
+  //   const response = await this.#pointsApiService.addPoint(point);
+  //   const adaptedPoint = PointsModel.adaptToClient(response);
+  //   this.#points.unshift(adaptedPoint);
+  //   return adaptedPoint;
+  // }
+  async addPoint(point) {
+    const pointToSend = { ...point };
+    delete pointToSend.id;
+
+    const response = await this.#pointsApiService.addPoint(pointToSend);
+    const adaptedPoint = PointsModel.adaptToClient(response);
+    this.#points.unshift(adaptedPoint);
+    return adaptedPoint;
   }
 
   async updatePoint(updatedPoint) {
@@ -34,7 +46,8 @@ export default class PointsModel {
     return adaptedPoint;
   }
 
-  deletePoint(pointId) {
+  async deletePoint(pointId) {
+    await this.#pointsApiService.deletePoint(pointId);
     const index = this.#points.findIndex((point) => point.id === pointId);
 
     if (index !== -1) {
@@ -57,7 +70,7 @@ export default class PointsModel {
 
   static adaptToServer(point) {
     return {
-      id: point.id,
+      ...(point.id ? { id: point.id } : {}),
       ['base_price']: point.basePrice,
       ['date_from']: point.dateFrom,
       ['date_to']: point.dateTo,

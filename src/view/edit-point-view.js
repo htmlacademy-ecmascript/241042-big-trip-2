@@ -4,7 +4,7 @@ import 'flatpickr/dist/flatpickr.css';
 import { TYPES, EMPTY_POINT } from '../const.js';
 import { humanizeDate, FLATPICKR_DATE_FORMAT } from '../utils.js';
 
-function createTypesTemplate(currentType, id) {
+function createTypesTemplate(currentType, id, isDisabled) {
   return TYPES.map((type) => `
     <div class="event__type-item">
       <input
@@ -14,6 +14,7 @@ function createTypesTemplate(currentType, id) {
         name="event-type-${id}"
         value="${type}"
         ${type === currentType ? 'checked' : ''}
+        ${isDisabled ? 'disabled' : ''}
       >
       <label class="event__type-label event__type-label--${type}" for="event-type-${type}-${id}">
         ${type}
@@ -99,6 +100,8 @@ function createEditPointTemplate({
   offersByType,
   allDestinations,
   resetButtonCaption,
+  isDisabled,
+  saveButtonCaption,
 }) {
   const {
     id,
@@ -127,7 +130,7 @@ function createEditPointTemplate({
             <div class="event__type-list">
               <fieldset class="event__type-group">
                 <legend class="visually-hidden">Event type</legend>
-                ${createTypesTemplate(type, id)}
+                ${createTypesTemplate(type, id, isDisabled)}
               </fieldset>
             </div>
           </div>
@@ -143,6 +146,7 @@ function createEditPointTemplate({
               name="event-destination"
               value="${destination?.name ?? ''}"
               list="destination-list-${id}"
+              ${isDisabled ? 'disabled' : ''}
             >
             <datalist id="destination-list-${id}">
               ${createDestinationsTemplate(allDestinations)}
@@ -155,6 +159,7 @@ function createEditPointTemplate({
               class="event__input event__input--time"
               id="event-start-time-${id}" type="text" name="event-start-time"
               value="${humanizeDate(dateFrom)}"
+              ${isDisabled ? 'disabled' : ''}
             >
             &mdash;
             <label class="visually-hidden" for="event-end-time-${id}">To</label>
@@ -164,6 +169,7 @@ function createEditPointTemplate({
               type="text"
               name="event-end-time"
               value="${humanizeDate(dateTo)}"
+              ${isDisabled ? 'disabled' : ''}
             >
           </div>
 
@@ -178,12 +184,13 @@ function createEditPointTemplate({
               type="text"
               name="event-price"
               value="${basePrice}"
+              ${isDisabled ? 'disabled' : ''}
             >
           </div>
 
-          <button class="event__save-btn btn btn--blue" type="submit">Save</button>
-          <button class="event__reset-btn" type="button">${resetButtonCaption}</button>
-          <button class="event__rollup-btn" type="button">
+          <button class="event__save-btn btn btn--blue" type="submit" ${isDisabled ? 'disabled' : ''}>${saveButtonCaption}</button>
+          <button class="event__reset-btn" type="button" ${isDisabled ? 'disabled' : ''}>${resetButtonCaption}</button>
+          <button class="event__rollup-btn" type="button" ${isDisabled ? 'disabled' : ''}>
             <span class="visually-hidden">Open event</span>
           </button>
         </header>
@@ -232,18 +239,55 @@ export default class EditPointView extends AbstractStatefulView {
       destination: destinationsModel.getById(currentPoint.destination),
       offersByType: offersModel.getByType(currentPoint.type),
       allDestinations: destinationsModel.destinations,
+      isDisabled: false,
+      isSaving: false,
+      isDeleting: false,
     });
 
     this._restoreHandlers();
   }
 
   get template() {
+    const resetButtonCaption = this._state.isDeleting
+      ? 'Deleting...'
+      : this.#getDefaultResetButtonCaption();
+
     return createEditPointTemplate({
       point: this._state.point,
       destination: this._state.destination,
       offersByType: this._state.offersByType,
       allDestinations: this._state.allDestinations,
-      resetButtonCaption: this.#isEditMode ? 'Delete' : 'Cancel',
+      resetButtonCaption,
+      isDisabled: this._state.isDisabled,
+      saveButtonCaption: this._state.isSaving ? 'Saving...' : 'Save',
+    });
+  }
+
+  #getDefaultResetButtonCaption() {
+    return this.#isEditMode ? 'Delete' : 'Cancel';
+  }
+
+  setSaving() {
+    this.updateElement({
+      isDisabled: true,
+      isSaving: true,
+      isDeleting: false,
+    });
+  }
+
+  setDeleting() {
+    this.updateElement({
+      isDisabled: true,
+      isSaving: false,
+      isDeleting: true,
+    });
+  }
+
+  resetState() {
+    this.updateElement({
+      isDisabled: false,
+      isSaving: false,
+      isDeleting: false,
     });
   }
 

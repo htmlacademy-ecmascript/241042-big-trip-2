@@ -3,10 +3,16 @@ import SortView from '../view/sort-view.js';
 import EventListView from '../view/event-list-view.js';
 import NoPointsView from '../view/no-points-view.js';
 import EditPointView from '../view/edit-point-view.js';
+import UiBlocker from '../framework/ui-blocker/ui-blocker.js';
 import PointPresenter from './point-presenter.js';
 
 import { FilterType, SortType, UserAction } from '../const.js';
 import { filter, sort, generateId } from '../utils.js';
+
+const TimeLimit = {
+  LOWER_LIMIT: 350,
+  UPPER_LIMIT: 1000,
+};
 
 export default class BoardPresenter {
   #boardContainer = null;
@@ -24,6 +30,7 @@ export default class BoardPresenter {
   #pointPresenters = [];
   #newEventButton = null;
   #isCreating = false;
+  #uiBlocker = new UiBlocker(TimeLimit);
 
   constructor({
     boardContainer,
@@ -196,7 +203,7 @@ export default class BoardPresenter {
     );
   }
 
-  #handleCreationFormSubmit = () => {
+  #handleCreationFormSubmit = async () => {
     const point = this.#creationFormComponent.point;
 
     if (!point.destination) {
@@ -204,8 +211,15 @@ export default class BoardPresenter {
       return;
     }
 
-    this.#handleViewAction(UserAction.ADD_POINT, point);
-    document.removeEventListener('keydown', this.#creationEscKeyDownHandler);
+    this.#creationFormComponent.setSaving();
+
+    try {
+      await this.#handleViewAction(UserAction.ADD_POINT, point);
+      document.removeEventListener('keydown', this.#creationEscKeyDownHandler);
+    } catch (err) {
+      this.#creationFormComponent.resetState();
+      this.#creationFormComponent.shake();
+    }
   };
 
   #handleCreationFormClose = () => {
@@ -256,29 +270,35 @@ export default class BoardPresenter {
   }
 
   #handleViewAction = async (actionType, payload) => {
-    switch (actionType) {
-      case UserAction.UPDATE_POINT: {
-        const updatedPoint = await this.#pointsModel.updatePoint(payload);
-        this.#pointPresenters
-          .find((presenter) => presenter.id === updatedPoint.id)
-          ?.update(updatedPoint);
-        return updatedPoint;
+    this.#uiBlocker.block();
+
+    try {
+      switch (actionType) {
+        case UserAction.UPDATE_POINT: {
+          const updatedPoint = await this.#pointsModel.updatePoint(payload);
+          this.#pointPresenters
+            .find((presenter) => presenter.id === updatedPoint.id)
+            ?.update(updatedPoint);
+          return updatedPoint;
+        }
+        case UserAction.DELETE_POINT:
+          await this.#pointsModel.deletePoint(payload);
+          this.#onFiltersUpdate();
+          this.#clearBoard();
+          this.#renderBoard();
+          return null;
+        case UserAction.ADD_POINT:
+          await this.#pointsModel.addPoint(payload);
+          this.#closeCreationForm();
+          this.#onFiltersUpdate();
+          this.#clearBoard();
+          this.#renderBoard();
+          return null;
+        default:
+          return null;
       }
-      case UserAction.DELETE_POINT:
-        this.#pointsModel.deletePoint(payload);
-        this.#onFiltersUpdate();
-        this.#clearBoard();
-        this.#renderBoard();
-        return null;
-      case UserAction.ADD_POINT:
-        this.#pointsModel.addPoint(payload);
-        this.#closeCreationForm();
-        this.#onFiltersUpdate();
-        this.#clearBoard();
-        this.#renderBoard();
-        return null;
-      default:
-        return null;
+    } finally {
+      this.#uiBlocker.unblock();
     }
   };
 
