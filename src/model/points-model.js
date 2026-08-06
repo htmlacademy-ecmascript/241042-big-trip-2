@@ -9,8 +9,16 @@ export default class PointsModel {
     return this.#points;
   }
 
+  setPoints(points) {
+    this.#points = points;
+  }
+
   getPointById(id) {
-    return this.#points.find((p) => p.id === id);
+    return this.#points.find((point) => point.id === id);
+  }
+
+  addPoint(point) {
+    this.#points.push(point);
   }
 
   updatePoint(updatedPoint) {
@@ -18,6 +26,14 @@ export default class PointsModel {
 
     if (index !== -1) {
       this.#points.splice(index, 1, updatedPoint);
+    }
+  }
+
+  deletePoint(pointId) {
+    const index = this.#points.findIndex((point) => point.id === pointId);
+
+    if (index !== -1) {
+      this.#points.splice(index, 1);
     }
   }
 }

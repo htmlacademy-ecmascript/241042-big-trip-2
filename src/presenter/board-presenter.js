@@ -1,45 +1,46 @@
-import { render, remove } from '../framework/render.js';
-import FilterView from '../view/filter-view.js';
+import { render, remove, RenderPosition } from '../framework/render.js';
 import SortView from '../view/sort-view.js';
 import EventListView from '../view/event-list-view.js';
 import NoPointsView from '../view/no-points-view.js';
+import EditPointView from '../view/edit-point-view.js';
 import PointPresenter from './point-presenter.js';
 
-import { generateFilters } from '../mock/filter-mock.js';
-import { SortType } from '../const.js';
-import { filter, sort } from '../utils.js';
+import { FilterType, SortType, UserAction } from '../const.js';
+import { filter, sort, generateId } from '../utils.js';
 
 export default class BoardPresenter {
   #boardContainer = null;
-  #filterContainer = null;
   #pointsModel = null;
   #destinationsModel = null;
   #offersModel = null;
   #filterModel = null;
   #sortModel = null;
+  #onFiltersUpdate = null;
 
   #boardComponent = new EventListView();
   #sortComponent = null;
   #noPointsComponent = null;
-  #filterComponent = null;
+  #creationFormComponent = null;
   #pointPresenters = [];
+  #newEventButton = null;
+  #isCreating = false;
 
   constructor({
     boardContainer,
-    filterContainer,
     pointsModel,
     destinationsModel,
     offersModel,
     filterModel,
     sortModel,
+    onFiltersUpdate,
   }) {
     this.#boardContainer = boardContainer;
-    this.#filterContainer = filterContainer;
     this.#pointsModel = pointsModel;
     this.#destinationsModel = destinationsModel;
     this.#offersModel = offersModel;
     this.#filterModel = filterModel;
     this.#sortModel = sortModel;
+    this.#onFiltersUpdate = onFiltersUpdate;
   }
 
   get #points() {
@@ -52,25 +53,47 @@ export default class BoardPresenter {
   }
 
   init() {
-    this.#renderFilter();
+    this.#newEventButton = document.querySelector('.trip-main__event-add-btn');
+    this.#newEventButton.addEventListener('click', this.#handleNewEventButtonClick);
     this.#renderBoard();
   }
 
-  #renderFilter() {
-    const filters = generateFilters(this.#pointsModel.points);
+  onFilterChange() {
+    this.#sortModel.setSort(SortType.DAY);
+    this.#resetAllPointViews();
+    this.#closeCreationForm();
+    this.#clearBoard();
+    this.#renderBoard();
+  }
 
-    if (this.#filterComponent) {
-      remove(this.#filterComponent);
+  #handleNewEventButtonClick = () => {
+    if (this.#isCreating) {
+      return;
     }
 
-    this.#filterComponent = new FilterView({
-      filters,
-      currentFilter: this.#filterModel.filter,
-      onFilterChange: this.#handleFilterChange
-    });
+    this.#filterModel.setFilter(FilterType.EVERYTHING);
+    this.#sortModel.setSort(SortType.DAY);
+    this.#onFiltersUpdate();
 
-    render(this.#filterComponent, this.#filterContainer);
-  }
+    this.#resetAllPointViews();
+    this.#closeCreationForm();
+    this.#clearBoard();
+
+    this.#isCreating = true;
+    this.#newEventButton.disabled = true;
+
+    this.#renderBoard();
+    document.addEventListener('keydown', this.#creationEscKeyDownHandler);
+  };
+
+  #creationEscKeyDownHandler = (evt) => {
+    if (evt.key === 'Escape') {
+      evt.preventDefault();
+      this.#closeCreationForm();
+      this.#renderBoard();
+      document.removeEventListener('keydown', this.#creationEscKeyDownHandler);
+    }
+  };
 
   #renderSort() {
     if (this.#sortComponent) {
@@ -84,18 +107,6 @@ export default class BoardPresenter {
 
     render(this.#sortComponent, this.#boardContainer);
   }
-
-  #handleFilterChange = (filterType) => {
-    if (this.#filterModel.filter === filterType) {
-      return;
-    }
-
-    this.#filterModel.setFilter(filterType);
-    this.#sortModel.setSort(SortType.DAY);
-    this.#renderFilter();
-    this.#clearBoard();
-    this.#renderBoard();
-  };
 
   #handleSortTypeChange = (sortType) => {
     if (this.#sortModel.sort === sortType) {
@@ -120,20 +131,29 @@ export default class BoardPresenter {
       this.#noPointsComponent = null;
     }
 
+    if (this.#creationFormComponent) {
+      remove(this.#creationFormComponent);
+      this.#creationFormComponent = null;
+    }
+
     this.#boardComponent.element.innerHTML = '';
   }
 
   #renderBoard() {
     const points = this.#points;
-    const pointCount = points.length;
+    const hasPoints = points.length > 0 || this.#isCreating;
 
-    if (pointCount === 0) {
+    if (!hasPoints) {
       this.#renderNoPoints();
       return;
     }
 
     this.#renderSort();
     render(this.#boardComponent, this.#boardContainer);
+
+    if (this.#isCreating) {
+      this.#renderCreationForm();
+    }
 
     points.forEach((point) => {
       this.#renderPoint(point);
@@ -142,9 +162,70 @@ export default class BoardPresenter {
 
   #renderNoPoints() {
     this.#noPointsComponent = new NoPointsView({
-      filterType: this.#filterModel.filter
+      filterType: this.#filterModel.filter,
     });
     render(this.#noPointsComponent, this.#boardContainer);
+  }
+
+  #renderCreationForm() {
+    const newPoint = {
+      id: generateId(),
+      type: 'flight',
+      destination: null,
+      dateFrom: '',
+      dateTo: '',
+      basePrice: 0,
+      isFavorite: false,
+      offerIds: [],
+    };
+
+    this.#creationFormComponent = new EditPointView({
+      point: newPoint,
+      destinationsModel: this.#destinationsModel,
+      offersModel: this.#offersModel,
+      isEditMode: false,
+      onFormSubmit: this.#handleCreationFormSubmit,
+      onRollupClick: this.#handleCreationFormClose,
+      onResetClick: this.#handleCreationFormClose,
+    });
+
+    render(
+      this.#creationFormComponent,
+      this.#boardComponent.element,
+      RenderPosition.AFTERBEGIN
+    );
+  }
+
+  #handleCreationFormSubmit = () => {
+    const point = this.#creationFormComponent.point;
+
+    if (!point.destination) {
+      this.#creationFormComponent.shake();
+      return;
+    }
+
+    this.#handleViewAction(UserAction.ADD_POINT, point);
+    document.removeEventListener('keydown', this.#creationEscKeyDownHandler);
+  };
+
+  #handleCreationFormClose = () => {
+    this.#closeCreationForm();
+    this.#renderBoard();
+    document.removeEventListener('keydown', this.#creationEscKeyDownHandler);
+  };
+
+  #closeCreationForm() {
+    if (!this.#isCreating) {
+      return;
+    }
+
+    if (this.#creationFormComponent) {
+      remove(this.#creationFormComponent);
+      this.#creationFormComponent = null;
+    }
+
+    this.#isCreating = false;
+    this.#newEventButton.disabled = false;
   }
 
   #renderPoint(point) {
@@ -153,7 +234,7 @@ export default class BoardPresenter {
       point,
       destinationsModel: this.#destinationsModel,
       offersModel: this.#offersModel,
-      onPointChange: this.#handlePointChange,
+      onViewAction: this.#handleViewAction,
       onOpenForm: this.#handleOpenForm,
     });
 
@@ -162,6 +243,10 @@ export default class BoardPresenter {
   }
 
   #renderPointsOrder() {
+    if (this.#isCreating && this.#creationFormComponent) {
+      this.#boardComponent.element.prepend(this.#creationFormComponent.element);
+    }
+
     this.#points.forEach((point) => {
       const pointPresenter = this.#pointPresenters
         .find((presenter) => presenter.id === point.id);
@@ -170,16 +255,33 @@ export default class BoardPresenter {
     });
   }
 
-  #handlePointChange = (updatedPoint) => {
-    this.#pointsModel.updatePoint(updatedPoint);
-
-    const pointPresenter = this.#pointPresenters
-      .find((presenter) => presenter.id === updatedPoint.id);
-
-    pointPresenter.update(updatedPoint);
+  #handleViewAction = (actionType, payload) => {
+    switch (actionType) {
+      case UserAction.UPDATE_POINT:
+        this.#pointsModel.updatePoint(payload);
+        this.#pointPresenters
+          .find((presenter) => presenter.id === payload.id)
+          ?.update(payload);
+        break;
+      case UserAction.DELETE_POINT:
+        this.#pointsModel.deletePoint(payload);
+        this.#onFiltersUpdate();
+        this.#clearBoard();
+        this.#renderBoard();
+        break;
+      case UserAction.ADD_POINT:
+        this.#pointsModel.addPoint(payload);
+        this.#closeCreationForm();
+        this.#onFiltersUpdate();
+        this.#clearBoard();
+        this.#renderBoard();
+        break;
+    }
   };
 
   #handleOpenForm = () => {
+    this.#closeCreationForm();
+    document.removeEventListener('keydown', this.#creationEscKeyDownHandler);
     this.#resetAllPointViews();
   };
 

@@ -97,7 +97,8 @@ function createEditPointTemplate({
   point,
   destination,
   offersByType,
-  allDestinations
+  allDestinations,
+  resetButtonCaption,
 }) {
   const {
     id,
@@ -181,7 +182,7 @@ function createEditPointTemplate({
           </div>
 
           <button class="event__save-btn btn btn--blue" type="submit">Save</button>
-          <button class="event__reset-btn" type="reset">Delete</button>
+          <button class="event__reset-btn" type="button">${resetButtonCaption}</button>
           <button class="event__rollup-btn" type="button">
             <span class="visually-hidden">Open event</span>
           </button>
@@ -201,6 +202,8 @@ export default class EditPointView extends AbstractStatefulView {
   #offersModel = null;
   #handleFormSubmit = null;
   #handleRollupClick = null;
+  #handleResetClick = null;
+  #isEditMode = true;
   #startDatepicker = null;
   #endDatepicker = null;
 
@@ -210,6 +213,8 @@ export default class EditPointView extends AbstractStatefulView {
     offersModel,
     onFormSubmit,
     onRollupClick,
+    onResetClick,
+    isEditMode = true,
   }) {
     super();
 
@@ -217,6 +222,8 @@ export default class EditPointView extends AbstractStatefulView {
     this.#offersModel = offersModel;
     this.#handleFormSubmit = onFormSubmit;
     this.#handleRollupClick = onRollupClick;
+    this.#handleResetClick = onResetClick;
+    this.#isEditMode = isEditMode;
 
     const currentPoint = point || EMPTY_POINT;
 
@@ -236,6 +243,7 @@ export default class EditPointView extends AbstractStatefulView {
       destination: this._state.destination,
       offersByType: this._state.offersByType,
       allDestinations: this._state.allDestinations,
+      resetButtonCaption: this.#isEditMode ? 'Delete' : 'Cancel',
     });
   }
 
@@ -267,8 +275,27 @@ export default class EditPointView extends AbstractStatefulView {
     this.element.querySelector('.event__input--destination')
       .addEventListener('change', this.#destinationChangeHandler);
 
+    const priceInput = this.element.querySelector('.event__input--price');
+    priceInput.addEventListener('input', this.#priceInputHandler);
+
+    this.element.querySelector('.event__reset-btn')
+      .addEventListener('click', this.#resetClickHandler);
+
     this.#setDatepickers();
   }
+
+  #priceInputHandler = (evt) => {
+    const digitsOnly = evt.target.value.replace(/\D/g, '');
+
+    if (evt.target.value !== digitsOnly) {
+      evt.target.value = digitsOnly;
+    }
+  };
+
+  #resetClickHandler = (evt) => {
+    evt.preventDefault();
+    this.#handleResetClick();
+  };
 
   #setDatepickers() {
     const startInput = this.element.querySelector('[name="event-start-time"]');
@@ -358,13 +385,18 @@ export default class EditPointView extends AbstractStatefulView {
   #destinationChangeHandler = (evt) => {
     const destination = this.#destinationsModel.getByName(evt.target.value);
 
+    if (!destination) {
+      evt.target.value = this._state.destination?.name ?? '';
+      return;
+    }
+
     this.updateElement({
       point: {
         ...this._state.point,
         ...this.#getDatesFromForm(),
-        destination: destination?.id ?? null,
+        destination: destination.id,
       },
-      destination: destination ?? null,
+      destination,
     });
   };
 }

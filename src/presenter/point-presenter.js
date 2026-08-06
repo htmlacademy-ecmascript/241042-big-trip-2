@@ -1,6 +1,7 @@
 import { render, replace } from '../framework/render.js';
 import EditPointView from '../view/edit-point-view.js';
 import PointView from '../view/point-view.js';
+import { UserAction } from '../const.js';
 
 const Mode = {
   DEFAULT: 'DEFAULT',
@@ -12,7 +13,7 @@ export default class PointPresenter {
   #point = null;
   #destinationsModel = null;
   #offersModel = null;
-  #onPointChange = null;
+  #onViewAction = null;
   #onOpenForm = null;
 
   #pointComponent = null;
@@ -24,14 +25,14 @@ export default class PointPresenter {
     point,
     destinationsModel,
     offersModel,
-    onPointChange,
+    onViewAction,
     onOpenForm,
   }) {
     this.#container = container;
     this.#point = point;
     this.#destinationsModel = destinationsModel;
     this.#offersModel = offersModel;
-    this.#onPointChange = onPointChange;
+    this.#onViewAction = onViewAction;
     this.#onOpenForm = onOpenForm;
   }
 
@@ -95,6 +96,7 @@ export default class PointPresenter {
       offersModel: this.#offersModel,
       onFormSubmit: this.#handleFormSubmit,
       onRollupClick: this.#handleRollupClick,
+      onResetClick: this.#handleDeleteClick,
     });
   }
 
@@ -108,8 +110,13 @@ export default class PointPresenter {
   #handleFormSubmit = () => {
     const updatedPoint = this.#editPointComponent.point;
 
+    if (!updatedPoint.destination) {
+      this.#editPointComponent.shake();
+      return;
+    }
+
     this.#point = updatedPoint;
-    this.#onPointChange(updatedPoint);
+    this.#onViewAction(UserAction.UPDATE_POINT, updatedPoint);
 
     const newPointComponent = this.#createPointComponent();
     replace(newPointComponent, this.#editPointComponent);
@@ -125,8 +132,13 @@ export default class PointPresenter {
     document.removeEventListener('keydown', this.#escKeyDownHandler);
   };
 
+  #handleDeleteClick = () => {
+    this.#onViewAction(UserAction.DELETE_POINT, this.#point.id);
+    document.removeEventListener('keydown', this.#escKeyDownHandler);
+  };
+
   #handleFavoriteClick = (updatedPoint) => {
-    this.#onPointChange(updatedPoint);
+    this.#onViewAction(UserAction.UPDATE_POINT, updatedPoint);
   };
 
   #escKeyDownHandler = (evt) => {

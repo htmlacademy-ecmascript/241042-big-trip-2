@@ -1,4 +1,5 @@
 import BoardPresenter from './presenter/board-presenter.js';
+import FilterPresenter from './presenter/filter-presenter.js';
 import PointsModel from './model/points-model.js';
 import DestinationsModel from './model/destinations-model.js';
 import OffersModel from './model/offers-model.js';
@@ -20,14 +21,28 @@ const offersModel = new OffersModel(mockOffers);
 const filterModel = new FilterModel();
 const sortModel = new SortModel();
 
+const presenters = {
+  onFilterChange() { },
+};
+
+const filterPresenter = new FilterPresenter({
+  filterContainer: siteFilterElement,
+  filterModel,
+  pointsModel,
+  onFilterChange: () => presenters.onFilterChange(),
+});
+
 const boardPresenter = new BoardPresenter({
   boardContainer: siteBoardElement,
-  filterContainer: siteFilterElement,
   pointsModel,
   destinationsModel,
   offersModel,
   filterModel,
   sortModel,
+  onFiltersUpdate: () => filterPresenter.init(),
 });
 
+presenters.onFilterChange = () => boardPresenter.onFilterChange();
+
 boardPresenter.init();
+filterPresenter.init();
