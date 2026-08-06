@@ -33,4 +33,11 @@ const SortType = {
   PRICE: 'price',
 };
 
-export { TYPES, EMPTY_POINT, FilterType, SortType, UserAction };
+const UpdateType = {
+  PATCH: 'PATCH',
+  MINOR: 'MINOR',
+  MAJOR: 'MAJOR',
+  INIT: 'INIT',
+};
+
+export { TYPES, EMPTY_POINT, FilterType, SortType, UserAction, UpdateType };

@@ -1,8 +1,9 @@
 export default class PointsModel {
+  #pointsApiService = null;
   #points = [];
 
-  constructor(points) {
-    this.#points = points;
+  constructor(pointsApiService) {
+    this.#pointsApiService = pointsApiService;
   }
 
   get points() {
@@ -21,12 +22,16 @@ export default class PointsModel {
     this.#points.push(point);
   }
 
-  updatePoint(updatedPoint) {
-    const index = this.#points.findIndex((point) => point.id === updatedPoint.id);
+  async updatePoint(updatedPoint) {
+    const response = await this.#pointsApiService.updatePoint(updatedPoint);
+    const adaptedPoint = PointsModel.adaptToClient(response);
+    const index = this.#points.findIndex((point) => point.id === adaptedPoint.id);
 
     if (index !== -1) {
-      this.#points.splice(index, 1, updatedPoint);
+      this.#points.splice(index, 1, adaptedPoint);
     }
+
+    return adaptedPoint;
   }
 
   deletePoint(pointId) {
@@ -35,5 +40,31 @@ export default class PointsModel {
     if (index !== -1) {
       this.#points.splice(index, 1);
     }
+  }
+
+  static adaptToClient(point) {
+    return {
+      id: point.id,
+      basePrice: point['base_price'],
+      dateFrom: point['date_from'],
+      dateTo: point['date_to'],
+      destination: point.destination,
+      isFavorite: point['is_favorite'],
+      offerIds: point.offers,
+      type: point.type,
+    };
+  }
+
+  static adaptToServer(point) {
+    return {
+      id: point.id,
+      ['base_price']: point.basePrice,
+      ['date_from']: point.dateFrom,
+      ['date_to']: point.dateTo,
+      destination: point.destination,
+      ['is_favorite']: point.isFavorite,
+      offers: point.offerIds,
+      type: point.type,
+    };
   }
 }

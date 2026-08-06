@@ -1,6 +1,14 @@
 import { render, remove } from '../framework/render.js';
 import FilterView from '../view/filter-view.js';
-import { generateFilters } from '../mock/filter-mock.js';
+import { FilterType } from '../const.js';
+import { filter } from '../utils.js';
+
+function generateFilters(points) {
+  return Object.values(FilterType).map((type) => ({
+    type,
+    isDisabled: filter[type](points).length === 0,
+  }));
+}
 
 export default class FilterPresenter {
   #filterContainer = null;
