@@ -271,8 +271,14 @@ export default class BoardPresenter {
     });
   }
 
+  #blockingClickHandler = (evt) => {
+    evt.preventDefault();
+    evt.stopPropagation();
+  };
+
   #handleViewAction = async (actionType, payload) => {
     this.#uiBlocker.block();
+    document.addEventListener('click', this.#blockingClickHandler, true);
 
     try {
       switch (actionType) {
@@ -302,6 +308,7 @@ export default class BoardPresenter {
           return null;
       }
     } finally {
+      document.removeEventListener('click', this.#blockingClickHandler, true);
       this.#uiBlocker.unblock();
     }
   };
