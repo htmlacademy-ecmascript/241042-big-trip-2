@@ -255,27 +255,30 @@ export default class BoardPresenter {
     });
   }
 
-  #handleViewAction = (actionType, payload) => {
+  #handleViewAction = async (actionType, payload) => {
     switch (actionType) {
-      case UserAction.UPDATE_POINT:
-        this.#pointsModel.updatePoint(payload);
+      case UserAction.UPDATE_POINT: {
+        const updatedPoint = await this.#pointsModel.updatePoint(payload);
         this.#pointPresenters
-          .find((presenter) => presenter.id === payload.id)
-          ?.update(payload);
-        break;
+          .find((presenter) => presenter.id === updatedPoint.id)
+          ?.update(updatedPoint);
+        return updatedPoint;
+      }
       case UserAction.DELETE_POINT:
         this.#pointsModel.deletePoint(payload);
         this.#onFiltersUpdate();
         this.#clearBoard();
         this.#renderBoard();
-        break;
+        return null;
       case UserAction.ADD_POINT:
         this.#pointsModel.addPoint(payload);
         this.#closeCreationForm();
         this.#onFiltersUpdate();
         this.#clearBoard();
         this.#renderBoard();
-        break;
+        return null;
+      default:
+        return null;
     }
   };
 

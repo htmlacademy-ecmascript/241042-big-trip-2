@@ -107,7 +107,7 @@ export default class PointPresenter {
     document.addEventListener('keydown', this.#escKeyDownHandler);
   };
 
-  #handleFormSubmit = () => {
+  #handleFormSubmit = async () => {
     const updatedPoint = this.#editPointComponent.point;
 
     if (!updatedPoint.destination) {
@@ -115,8 +115,13 @@ export default class PointPresenter {
       return;
     }
 
-    this.#point = updatedPoint;
-    this.#onViewAction(UserAction.UPDATE_POINT, updatedPoint);
+    const savedPoint = await this.#onViewAction(UserAction.UPDATE_POINT, updatedPoint);
+
+    if (!savedPoint) {
+      return;
+    }
+
+    this.#point = savedPoint;
 
     const newPointComponent = this.#createPointComponent();
     replace(newPointComponent, this.#editPointComponent);
@@ -137,8 +142,12 @@ export default class PointPresenter {
     document.removeEventListener('keydown', this.#escKeyDownHandler);
   };
 
-  #handleFavoriteClick = (updatedPoint) => {
-    this.#onViewAction(UserAction.UPDATE_POINT, updatedPoint);
+  #handleFavoriteClick = async (updatedPoint) => {
+    const savedPoint = await this.#onViewAction(UserAction.UPDATE_POINT, updatedPoint);
+
+    if (savedPoint) {
+      this.update(savedPoint);
+    }
   };
 
   #escKeyDownHandler = (evt) => {

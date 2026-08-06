@@ -1,26 +1,26 @@
 export default class OffersModel {
   #offers = [];
-  #offersMap = null;
-  #offersByType = null;
+  #offersMap = new Map();
+  #offersByType = new Map();
 
-  constructor(offers) {
-    this.#offers = offers;
-
-    this.#offersByType = new Map(
-      this.#offers.map((group) => [group.type, group.offers])
-    );
-
-    this.#offersMap = new Map();
-
-    this.#offers.forEach((group) => {
-      group.offers.forEach((offer) => {
-        this.#offersMap.set(offer.id, offer);
-      });
-    });
+  constructor(offers = []) {
+    this.setOffers(offers);
   }
 
   get offers() {
     return this.#offers;
+  }
+
+  setOffers(offers) {
+    this.#offers = offers;
+    this.#offersByType = new Map(offers.map((group) => [group.type, group.offers]));
+    this.#offersMap = new Map();
+
+    offers.forEach((group) => {
+      group.offers.forEach((offer) => {
+        this.#offersMap.set(offer.id, offer);
+      });
+    });
   }
 
   getByType(type) {
