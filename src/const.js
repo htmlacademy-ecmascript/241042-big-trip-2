@@ -5,13 +5,19 @@ const TYPES = [
 ];
 
 const EMPTY_POINT = {
-  basePrice: '',
+  basePrice: 0,
   dateFrom: '',
   dateTo: '',
   destination: null,
   isFavorite: false,
   offerIds: [],
-  type: TYPES[0],
+  type: 'flight',
+};
+
+const UserAction = {
+  UPDATE_POINT: 'UPDATE_POINT',
+  ADD_POINT: 'ADD_POINT',
+  DELETE_POINT: 'DELETE_POINT',
 };
 
 const FilterType = {
@@ -27,4 +33,4 @@ const SortType = {
   PRICE: 'price',
 };
 
-export { TYPES, EMPTY_POINT, FilterType, SortType };
+export { TYPES, EMPTY_POINT, FilterType, SortType, UserAction };
