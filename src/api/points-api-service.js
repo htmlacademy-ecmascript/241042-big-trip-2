@@ -26,4 +26,21 @@ export default class PointsApiService extends ApiService {
     })
       .then(ApiService.parseResponse);
   }
+
+  addPoint(point) {
+    return this._load({
+      url: 'points',
+      method: 'POST',
+      body: JSON.stringify(PointsModel.adaptToServer(point)),
+      headers: new Headers({ 'Content-Type': 'application/json' }),
+    })
+      .then(ApiService.parseResponse);
+  }
+
+  deletePoint(pointId) {
+    return this._load({
+      url: `points/${pointId}`,
+      method: 'DELETE',
+    });
+  }
 }

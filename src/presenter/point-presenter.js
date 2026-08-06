@@ -115,9 +115,14 @@ export default class PointPresenter {
       return;
     }
 
-    const savedPoint = await this.#onViewAction(UserAction.UPDATE_POINT, updatedPoint);
+    this.#editPointComponent.setSaving();
 
-    if (!savedPoint) {
+    let savedPoint;
+    try {
+      savedPoint = await this.#onViewAction(UserAction.UPDATE_POINT, updatedPoint);
+    } catch (err) {
+      this.#editPointComponent.resetState();
+      this.#editPointComponent.shake();
       return;
     }
 
@@ -137,16 +142,27 @@ export default class PointPresenter {
     document.removeEventListener('keydown', this.#escKeyDownHandler);
   };
 
-  #handleDeleteClick = () => {
-    this.#onViewAction(UserAction.DELETE_POINT, this.#point.id);
-    document.removeEventListener('keydown', this.#escKeyDownHandler);
+  #handleDeleteClick = async () => {
+    this.#editPointComponent.setDeleting();
+
+    try {
+      await this.#onViewAction(UserAction.DELETE_POINT, this.#point.id);
+      document.removeEventListener('keydown', this.#escKeyDownHandler);
+    } catch (err) {
+      this.#editPointComponent.resetState();
+      this.#editPointComponent.shake();
+    }
   };
 
   #handleFavoriteClick = async (updatedPoint) => {
-    const savedPoint = await this.#onViewAction(UserAction.UPDATE_POINT, updatedPoint);
+    try {
+      const savedPoint = await this.#onViewAction(UserAction.UPDATE_POINT, updatedPoint);
 
-    if (savedPoint) {
-      this.update(savedPoint);
+      if (savedPoint) {
+        this.update(savedPoint);
+      }
+    } catch (err) {
+      // Favorite button has no dedicated loading state in this step.
     }
   };
 
