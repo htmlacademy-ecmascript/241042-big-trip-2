@@ -1,6 +1,7 @@
 import { render, remove } from './framework/render.js';
 import BoardPresenter from './presenter/board-presenter.js';
 import FilterPresenter from './presenter/filter-presenter.js';
+import TripInfoPresenter from './presenter/trip-info-presenter.js';
 import PointsModel from './model/points-model.js';
 import DestinationsModel from './model/destinations-model.js';
 import OffersModel from './model/offers-model.js';
@@ -8,8 +9,10 @@ import FilterModel from './model/filter-model.js';
 import SortModel from './model/sort-model.js';
 import PointsApiService from './api/points-api-service.js';
 import LoadingView from './view/loading-view.js';
+import FailedLoadView from './view/failed-load-view.js';
 
 const siteHeaderElement = document.querySelector('.page-header');
+const siteTripMainElement = siteHeaderElement.querySelector('.trip-main');
 const siteFilterElement = siteHeaderElement.querySelector('.trip-controls__filters');
 const siteMainElement = document.querySelector('.page-main');
 const siteBoardElement = siteMainElement.querySelector('.trip-events');
@@ -24,6 +27,7 @@ const offersModel = new OffersModel();
 const filterModel = new FilterModel();
 const sortModel = new SortModel();
 const loadingComponent = new LoadingView();
+const newEventButton = siteHeaderElement.querySelector('.trip-main__event-add-btn');
 
 render(loadingComponent, siteBoardElement);
 
@@ -38,6 +42,13 @@ const filterPresenter = new FilterPresenter({
   onFilterChange: () => presenters.onFilterChange(),
 });
 
+const tripInfoPresenter = new TripInfoPresenter({
+  tripMainContainer: siteTripMainElement,
+  pointsModel,
+  destinationsModel,
+  offersModel,
+});
+
 const boardPresenter = new BoardPresenter({
   boardContainer: siteBoardElement,
   pointsModel,
@@ -45,10 +56,15 @@ const boardPresenter = new BoardPresenter({
   offersModel,
   filterModel,
   sortModel,
-  onFiltersUpdate: () => filterPresenter.init(),
+  onDataUpdate: () => {
+    filterPresenter.init();
+    tripInfoPresenter.init();
+  },
 });
 
 presenters.onFilterChange = () => boardPresenter.onFilterChange();
+
+let isLoadError = false;
 
 Promise.all([
   apiService.getPoints(),
@@ -61,12 +77,19 @@ Promise.all([
     offersModel.setOffers(offers);
   })
   .catch(() => {
-    pointsModel.setPoints([]);
-    destinationsModel.setDestinations([]);
-    offersModel.setOffers([]);
+    isLoadError = true;
   })
   .finally(() => {
     remove(loadingComponent);
+
+    if (isLoadError) {
+      render(new FailedLoadView(), siteBoardElement);
+      newEventButton.disabled = true;
+      filterPresenter.init();
+      return;
+    }
+
     boardPresenter.init();
     filterPresenter.init();
+    tripInfoPresenter.init();
   });

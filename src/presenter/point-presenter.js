@@ -162,7 +162,7 @@ export default class PointPresenter {
         this.update(savedPoint);
       }
     } catch (err) {
-      // Favorite button has no dedicated loading state in this step.
+      this.#pointComponent.shake();
     }
   };
 

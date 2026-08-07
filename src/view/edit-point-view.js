@@ -189,8 +189,8 @@ function createEditPointTemplate({
           </div>
 
           <button class="event__save-btn btn btn--blue" type="submit" ${isDisabled ? 'disabled' : ''}>${saveButtonCaption}</button>
-          <button class="event__reset-btn" type="button" ${isDisabled ? 'disabled' : ''}>${resetButtonCaption}</button>
-          <button class="event__rollup-btn" type="button" ${isDisabled ? 'disabled' : ''}>
+          <button class="event__reset-btn" type="button">${resetButtonCaption}</button>
+          <button class="event__rollup-btn" type="button">
             <span class="visually-hidden">Open event</span>
           </button>
         </header>
@@ -269,25 +269,25 @@ export default class EditPointView extends AbstractStatefulView {
 
   setSaving() {
     this.updateElement({
-      isDisabled: true,
       isSaving: true,
       isDeleting: false,
+      isDisabled: true,
     });
   }
 
   setDeleting() {
     this.updateElement({
-      isDisabled: true,
       isSaving: false,
       isDeleting: true,
+      isDisabled: true,
     });
   }
 
   resetState() {
     this.updateElement({
-      isDisabled: false,
       isSaving: false,
       isDeleting: false,
+      isDisabled: false,
     });
   }
 
@@ -338,6 +338,9 @@ export default class EditPointView extends AbstractStatefulView {
 
   #resetClickHandler = (evt) => {
     evt.preventDefault();
+    if (this._state.isDisabled) {
+      return;
+    }
     this.#handleResetClick();
   };
 
@@ -385,11 +388,17 @@ export default class EditPointView extends AbstractStatefulView {
 
   #formSubmitHandler = (evt) => {
     evt.preventDefault();
+    if (this._state.isDisabled) {
+      return;
+    }
     this.#handleFormSubmit();
   };
 
   #rollupClickHandler = (evt) => {
     evt.preventDefault();
+    if (this._state.isDisabled) {
+      return;
+    }
     this.#handleRollupClick();
   };
 

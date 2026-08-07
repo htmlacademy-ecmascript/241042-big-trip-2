@@ -40,7 +40,7 @@ function getDuration(startDate, endDate) {
   const minutes = totalMinutes % 60;
 
   if (days > 0) {
-    return `${days}D ${formatDurationUnit(hours)}H ${formatDurationUnit(minutes)}M`;
+    return `${formatDurationUnit(days)}D ${formatDurationUnit(hours)}H ${formatDurationUnit(minutes)}M`;
   }
 
   if (hours > 0) {
@@ -82,6 +82,57 @@ const sort = {
   [SortType.PRICE]: (points) => [...points].sort(sortByPrice),
 };
 
+function getTripRouteTitle(points, getDestinationName) {
+  const cities = sort[SortType.DAY](points)
+    .map((point) => getDestinationName(point.destination))
+    .filter(Boolean);
+
+  if (cities.length === 0) {
+    return '';
+  }
+
+  if (cities.length <= 3) {
+    return cities.join(' &mdash; ');
+  }
+
+  return `${cities[0]} &mdash;... &mdash; ${cities[cities.length - 1]}`;
+}
+
+function getTripDates(points) {
+  if (points.length === 0) {
+    return '';
+  }
+
+  const sortedPoints = sort[SortType.DAY](points);
+  const dateFrom = sortedPoints[0].dateFrom;
+  const dateTo = sortedPoints.reduce(
+    (latestDate, point) => (dayjs(point.dateTo).isAfter(dayjs(latestDate)) ? point.dateTo : latestDate),
+    sortedPoints[0].dateTo
+  );
+
+  const start = dayjs(dateFrom);
+  const end = dayjs(dateTo);
+
+  if (start.month() === end.month() && start.year() === end.year()) {
+    if (start.date() === end.date()) {
+      return start.format('D MMM').toUpperCase();
+    }
+
+    return `${start.format('D MMM').toUpperCase()}&nbsp;&mdash;&nbsp;${end.format('D MMM').toUpperCase()}`;
+  }
+
+  return `${start.format('D MMM').toUpperCase()}&nbsp;&mdash;&nbsp;${end.format('D MMM').toUpperCase()}`;
+}
+
+function getTripCost(points, offersModel) {
+  return points.reduce((total, point) => {
+    const offersPrice = offersModel.getByIds(point.offerIds)
+      .reduce((sum, offer) => sum + offer.price, 0);
+
+    return total + point.basePrice + offersPrice;
+  }, 0);
+}
+
 export {
   getRandomItem,
   getRandomInt,
@@ -92,5 +143,8 @@ export {
   getDuration,
   filter,
   sort,
+  getTripRouteTitle,
+  getTripDates,
+  getTripCost,
   FLATPICKR_DATE_FORMAT,
 };
