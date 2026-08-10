@@ -56,6 +56,7 @@ export default class PointPresenter {
   resetView() {
     if (this.#mode === Mode.EDIT) {
       this.#replaceFormToPoint();
+      document.removeEventListener('keydown', this.#escKeyDownHandler);
     }
   }
 
@@ -72,32 +73,7 @@ export default class PointPresenter {
   }
 
   destroy() {
-    if (this.#escKeyDownHandler) {
-      document.removeEventListener('keydown', this.#escKeyDownHandler);
-    }
-  }
-
-  #createPointComponent() {
-    const destination = this.#destinationsModel.getById(this.#point.destination);
-
-    return new PointView({
-      point: this.#point,
-      destination,
-      offers: this.#offersModel.getByIds(this.#point.offerIds),
-      onEditClick: this.#handleEditClick,
-      onFavoriteClick: this.#handleFavoriteClick,
-    });
-  }
-
-  #createEditPointComponent() {
-    return new EditPointView({
-      point: this.#point,
-      destinationsModel: this.#destinationsModel,
-      offersModel: this.#offersModel,
-      onFormSubmit: this.#handleFormSubmit,
-      onRollupClick: this.#handleRollupClick,
-      onResetClick: this.#handleDeleteClick,
-    });
+    document.removeEventListener('keydown', this.#escKeyDownHandler);
   }
 
   #handleEditClick = () => {
@@ -128,9 +104,12 @@ export default class PointPresenter {
 
     this.#point = savedPoint;
 
-    const newPointComponent = this.#createPointComponent();
-    replace(newPointComponent, this.#editPointComponent);
-    this.#pointComponent = newPointComponent;
+    if (this.#editPointComponent.element.isConnected) {
+      const newPointComponent = this.#createPointComponent();
+      replace(newPointComponent, this.#editPointComponent);
+      this.#pointComponent = newPointComponent;
+    }
+
     this.#editPointComponent = null;
     this.#mode = Mode.DEFAULT;
 
@@ -167,12 +146,42 @@ export default class PointPresenter {
   };
 
   #escKeyDownHandler = (evt) => {
-    if (evt.key === 'Escape') {
-      evt.preventDefault();
-      this.#replaceFormToPoint();
-      document.removeEventListener('keydown', this.#escKeyDownHandler);
+    if (evt.key !== 'Escape') {
+      return;
     }
+
+    evt.preventDefault();
+
+    if (!this.#editPointComponent || this.#editPointComponent.isDisabled) {
+      return;
+    }
+
+    this.#replaceFormToPoint();
+    document.removeEventListener('keydown', this.#escKeyDownHandler);
   };
+
+  #createPointComponent() {
+    const destination = this.#destinationsModel.getById(this.#point.destination);
+
+    return new PointView({
+      point: this.#point,
+      destination,
+      offers: this.#offersModel.getByIds(this.#point.offerIds),
+      onEditClick: this.#handleEditClick,
+      onFavoriteClick: this.#handleFavoriteClick,
+    });
+  }
+
+  #createEditPointComponent() {
+    return new EditPointView({
+      point: this.#point,
+      destinationsModel: this.#destinationsModel,
+      offersModel: this.#offersModel,
+      onFormSubmit: this.#handleFormSubmit,
+      onRollupClick: this.#handleRollupClick,
+      onResetClick: this.#handleDeleteClick,
+    });
+  }
 
   #replacePointToForm() {
     replace(this.#editPointComponent, this.#pointComponent);

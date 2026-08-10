@@ -1,4 +1,5 @@
 import { render, remove, RenderPosition } from '../framework/render.js';
+import he from 'he';
 import TripInfoView from '../view/trip-info-view.js';
 import { getTripRouteTitle, getTripDates, getTripCost } from '../utils.js';
 
@@ -28,8 +29,10 @@ export default class TripInfoPresenter {
       return;
     }
 
-    const getDestinationName = (destinationId) =>
-      this.#destinationsModel.getById(destinationId)?.name;
+    const getDestinationName = (destinationId) => {
+      const name = this.#destinationsModel.getById(destinationId)?.name;
+      return name ? he.encode(name) : '';
+    };
 
     this.#tripInfoComponent = new TripInfoView({
       title: getTripRouteTitle(points, getDestinationName),
