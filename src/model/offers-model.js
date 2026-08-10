@@ -1,6 +1,6 @@
 export default class OffersModel {
   #offers = [];
-  #offersMap = new Map();
+  #offersById = new Map();
   #offersByType = new Map();
 
   constructor(offers = []) {
@@ -14,11 +14,11 @@ export default class OffersModel {
   setOffers(offers) {
     this.#offers = offers;
     this.#offersByType = new Map(offers.map((group) => [group.type, group.offers]));
-    this.#offersMap = new Map();
+    this.#offersById = new Map();
 
     offers.forEach((group) => {
       group.offers.forEach((offer) => {
-        this.#offersMap.set(offer.id, offer);
+        this.#offersById.set(offer.id, offer);
       });
     });
   }
@@ -28,10 +28,10 @@ export default class OffersModel {
   }
 
   getById(id) {
-    return this.#offersMap.get(id);
+    return this.#offersById.get(id);
   }
 
   getByIds(ids = []) {
-    return ids.map((id) => this.#offersMap.get(id)).filter(Boolean);
+    return ids.map((id) => this.#offersById.get(id)).filter(Boolean);
   }
 }

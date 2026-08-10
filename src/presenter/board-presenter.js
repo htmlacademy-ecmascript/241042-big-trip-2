@@ -61,7 +61,7 @@ export default class BoardPresenter {
 
   init() {
     this.#newEventButton = document.querySelector('.trip-main__event-add-btn');
-    this.#newEventButton.addEventListener('click', this.#handleNewEventButtonClick);
+    this.#newEventButton.addEventListener('click', this.#newEventButtonClickHandler);
     this.#renderBoard();
   }
 
@@ -73,7 +73,7 @@ export default class BoardPresenter {
     this.#renderBoard();
   }
 
-  #handleNewEventButtonClick = () => {
+  #newEventButtonClickHandler = () => {
     if (this.#isCreating) {
       return;
     }
@@ -94,13 +94,20 @@ export default class BoardPresenter {
   };
 
   #creationEscKeyDownHandler = (evt) => {
-    if (evt.key === 'Escape') {
-      evt.preventDefault();
-      this.#closeCreationForm();
-      this.#clearBoard();
-      this.#renderBoard();
-      document.removeEventListener('keydown', this.#creationEscKeyDownHandler);
+    if (evt.key !== 'Escape') {
+      return;
     }
+
+    evt.preventDefault();
+
+    if (this.#creationFormComponent?.isDisabled) {
+      return;
+    }
+
+    this.#closeCreationForm();
+    this.#clearBoard();
+    this.#renderBoard();
+    document.removeEventListener('keydown', this.#creationEscKeyDownHandler);
   };
 
   #renderSort() {
@@ -283,27 +290,51 @@ export default class BoardPresenter {
     try {
       switch (actionType) {
         case UserAction.UPDATE_POINT: {
-          const updatedPoint = await this.#pointsModel.updatePoint(payload);
-          this.#pointPresenters
-            .find((presenter) => presenter.id === updatedPoint.id)
-            ?.update(updatedPoint);
+          const updatedPoint = await this.#pointsModel.update(payload);
+
+          this.#syncPointPresenters();
+
+          const updatedPresenter = this.#pointPresenters
+            .find((presenter) => presenter.id === updatedPoint.id);
+
+          if (updatedPresenter) {
+            updatedPresenter.update(updatedPoint);
+          }
+
           this.#renderPointsOrder();
           this.#onDataUpdate();
           return updatedPoint;
         }
-        case UserAction.DELETE_POINT:
-          await this.#pointsModel.deletePoint(payload);
+        case UserAction.DELETE_POINT: {
+          await this.#pointsModel.delete(payload);
+
+          const presenterIndex = this.#pointPresenters
+            .findIndex((presenter) => presenter.id === payload);
+
+          if (presenterIndex !== -1) {
+            const [removedPresenter] = this.#pointPresenters.splice(presenterIndex, 1);
+            removedPresenter.destroy();
+            remove(removedPresenter.viewComponent);
+          }
+
+          if (this.#points.length === 0) {
+            this.#clearBoard();
+            this.#renderBoard();
+          } else {
+            this.#renderPointsOrder();
+          }
+
           this.#onDataUpdate();
-          this.#clearBoard();
-          this.#renderBoard();
           return null;
-        case UserAction.ADD_POINT:
-          await this.#pointsModel.addPoint(payload);
+        }
+        case UserAction.ADD_POINT: {
+          await this.#pointsModel.add(payload);
           this.#closeCreationForm();
+          this.#syncPointPresenters();
+          this.#renderPointsOrder();
           this.#onDataUpdate();
-          this.#clearBoard();
-          this.#renderBoard();
           return null;
+        }
         default:
           return null;
       }
@@ -312,6 +343,33 @@ export default class BoardPresenter {
       this.#uiBlocker.unblock();
     }
   };
+
+  #syncPointPresenters() {
+    const points = this.#points;
+
+    this.#pointPresenters.forEach((presenter) => {
+      const isPointPresent = points.some((point) => point.id === presenter.id);
+
+      if (!isPointPresent) {
+        presenter.destroy();
+        remove(presenter.viewComponent);
+      }
+    });
+
+    this.#pointPresenters = this.#pointPresenters.filter((presenter) =>
+      points.some((point) => point.id === presenter.id)
+    );
+
+    points.forEach((point) => {
+      const hasPresenter = this.#pointPresenters.some(
+        (presenter) => presenter.id === point.id
+      );
+
+      if (!hasPresenter) {
+        this.#renderPoint(point);
+      }
+    });
+  }
 
   #handleOpenForm = () => {
     this.#closeCreationForm();

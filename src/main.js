@@ -17,10 +17,14 @@ const siteFilterElement = siteHeaderElement.querySelector('.trip-controls__filte
 const siteMainElement = document.querySelector('.page-main');
 const siteBoardElement = siteMainElement.querySelector('.trip-events');
 
-const AUTHORIZATION = `Basic ${Math.random().toString(36).slice(2, 12)}`;
+const AUTHORIZATION_RADIX = 36;
+const AUTHORIZATION_SLICE_START = 2;
+const AUTHORIZATION_SLICE_END = 12;
+
+const authorization = `Basic ${Math.random().toString(AUTHORIZATION_RADIX).slice(AUTHORIZATION_SLICE_START, AUTHORIZATION_SLICE_END)}`;
 const END_POINT = 'https://22.objects.htmlacademy.pro/big-trip';
 
-const apiService = new PointsApiService(END_POINT, AUTHORIZATION);
+const apiService = new PointsApiService(END_POINT, authorization);
 const pointsModel = new PointsModel(apiService);
 const destinationsModel = new DestinationsModel();
 const offersModel = new OffersModel();
@@ -28,8 +32,6 @@ const filterModel = new FilterModel();
 const sortModel = new SortModel();
 const loadingComponent = new LoadingView();
 const newEventButton = siteHeaderElement.querySelector('.trip-main__event-add-btn');
-
-render(loadingComponent, siteBoardElement);
 
 const presenters = {
   onFilterChange() { },
@@ -65,6 +67,8 @@ const boardPresenter = new BoardPresenter({
 presenters.onFilterChange = () => boardPresenter.onFilterChange();
 
 let isLoadError = false;
+
+render(loadingComponent, siteBoardElement);
 
 Promise.all([
   apiService.getPoints(),

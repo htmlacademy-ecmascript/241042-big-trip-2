@@ -1,29 +1,29 @@
 import dayjs from 'dayjs';
 import { FilterType, SortType } from './const.js';
 
-const DATE_FORMAT = 'DD/MM/YY HH:mm';
-const FLATPICKR_DATE_FORMAT = 'd/m/y H:i';
-const TIME_FORMAT = 'HH:mm';
-const DAY_FORMAT = 'MMM D';
+const DateFormat = {
+  DATE: 'DD/MM/YY HH:mm',
+  FLATPICKR: 'd/m/y H:i',
+  TIME: 'HH:mm',
+  DAY: 'MMM D',
+};
 
-const getRandomItem = (items) =>
-  items[Math.floor(Math.random() * items.length)];
-
-const getRandomInt = (min, max) =>
-  Math.floor(Math.random() * (max - min + 1)) + min;
+const MINUTES_PER_HOUR = 60;
+const HOURS_PER_DAY = 24;
+const MAX_CITIES_IN_ROUTE = 3;
 
 const generateId = () => crypto.randomUUID();
 
 function humanizeDate(date) {
-  return date ? dayjs(date).format(DATE_FORMAT) : '';
+  return date ? dayjs(date).format(DateFormat.DATE) : '';
 }
 
 function humanizeTime(date) {
-  return date ? dayjs(date).format(TIME_FORMAT) : '';
+  return date ? dayjs(date).format(DateFormat.TIME) : '';
 }
 
 function humanizeDay(date) {
-  return date ? dayjs(date).format(DAY_FORMAT).toUpperCase() : '';
+  return date ? dayjs(date).format(DateFormat.DAY).toUpperCase() : '';
 }
 
 function formatDurationUnit(value) {
@@ -34,10 +34,12 @@ function getDuration(startDate, endDate) {
   const start = dayjs(startDate);
   const end = dayjs(endDate);
 
+  const minutesPerDay = MINUTES_PER_HOUR * HOURS_PER_DAY;
+
   const totalMinutes = end.diff(start, 'minute');
-  const days = Math.floor(totalMinutes / (60 * 24));
-  const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
-  const minutes = totalMinutes % 60;
+  const days = Math.floor(totalMinutes / minutesPerDay);
+  const hours = Math.floor((totalMinutes % minutesPerDay) / MINUTES_PER_HOUR);
+  const minutes = totalMinutes % MINUTES_PER_HOUR;
 
   if (days > 0) {
     return `${formatDurationUnit(days)}D ${formatDurationUnit(hours)}H ${formatDurationUnit(minutes)}M`;
@@ -91,7 +93,7 @@ function getTripRouteTitle(points, getDestinationName) {
     return '';
   }
 
-  if (cities.length <= 3) {
+  if (cities.length <= MAX_CITIES_IN_ROUTE) {
     return cities.join(' &mdash; ');
   }
 
@@ -113,12 +115,8 @@ function getTripDates(points) {
   const start = dayjs(dateFrom);
   const end = dayjs(dateTo);
 
-  if (start.month() === end.month() && start.year() === end.year()) {
-    if (start.date() === end.date()) {
-      return start.format('D MMM').toUpperCase();
-    }
-
-    return `${start.format('D MMM').toUpperCase()}&nbsp;&mdash;&nbsp;${end.format('D MMM').toUpperCase()}`;
+  if (start.isSame(end, 'day')) {
+    return start.format('D MMM').toUpperCase();
   }
 
   return `${start.format('D MMM').toUpperCase()}&nbsp;&mdash;&nbsp;${end.format('D MMM').toUpperCase()}`;
@@ -134,8 +132,7 @@ function getTripCost(points, offersModel) {
 }
 
 export {
-  getRandomItem,
-  getRandomInt,
+  DateFormat,
   generateId,
   humanizeDate,
   humanizeTime,
@@ -146,5 +143,4 @@ export {
   getTripRouteTitle,
   getTripDates,
   getTripCost,
-  FLATPICKR_DATE_FORMAT,
 };
