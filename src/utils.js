@@ -1,5 +1,6 @@
 import dayjs from 'dayjs';
-import { FilterType, SortType } from './const.js';
+import he from 'he';
+import { FilterType, PointType, SortType, TYPES } from './const.js';
 
 const DateFormat = {
   DATE: 'DD/MM/YY HH:mm',
@@ -13,6 +14,26 @@ const HOURS_PER_DAY = 24;
 const MAX_CITIES_IN_ROUTE = 3;
 
 const generateId = () => crypto.randomUUID();
+
+const ID_PATTERN = /^[a-zA-Z0-9-]+$/;
+
+function normalizeType(type) {
+  return TYPES.includes(type) ? type : PointType.FLIGHT;
+}
+
+function normalizePrice(value) {
+  const price = Number(value);
+  return Number.isFinite(price) && price >= 0 ? price : 0;
+}
+
+function sanitizeId(value) {
+  const id = String(value ?? '');
+  return ID_PATTERN.test(id) ? id : '';
+}
+
+function escapeHtml(value) {
+  return he.encode(String(value ?? ''));
+}
 
 function humanizeDate(date) {
   return date ? dayjs(date).format(DateFormat.DATE) : '';
@@ -143,4 +164,8 @@ export {
   getTripRouteTitle,
   getTripDates,
   getTripCost,
+  normalizeType,
+  normalizePrice,
+  sanitizeId,
+  escapeHtml,
 };

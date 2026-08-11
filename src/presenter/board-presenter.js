@@ -107,7 +107,6 @@ export default class BoardPresenter {
     this.#closeCreationForm();
     this.#clearBoard();
     this.#renderBoard();
-    document.removeEventListener('keydown', this.#creationEscKeyDownHandler);
   };
 
   #renderSort() {
@@ -223,7 +222,6 @@ export default class BoardPresenter {
 
     try {
       await this.#handleViewAction(UserAction.ADD_POINT, point);
-      document.removeEventListener('keydown', this.#creationEscKeyDownHandler);
     } catch (err) {
       this.#creationFormComponent.resetState();
       this.#creationFormComponent.shake();
@@ -234,10 +232,11 @@ export default class BoardPresenter {
     this.#closeCreationForm();
     this.#clearBoard();
     this.#renderBoard();
-    document.removeEventListener('keydown', this.#creationEscKeyDownHandler);
   };
 
   #closeCreationForm() {
+    document.removeEventListener('keydown', this.#creationEscKeyDownHandler);
+
     if (!this.#isCreating) {
       return;
     }
@@ -373,7 +372,6 @@ export default class BoardPresenter {
 
   #handleOpenForm = () => {
     this.#closeCreationForm();
-    document.removeEventListener('keydown', this.#creationEscKeyDownHandler);
     this.#resetAllPointViews();
   };
 

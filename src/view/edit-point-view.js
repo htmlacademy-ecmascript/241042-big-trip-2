@@ -3,7 +3,14 @@ import flatpickr from 'flatpickr';
 import 'flatpickr/dist/flatpickr.css';
 import he from 'he';
 import { TYPES, EMPTY_POINT } from '../const.js';
-import { humanizeDate, DateFormat } from '../utils.js';
+import {
+  DateFormat,
+  generateId,
+  humanizeDate,
+  normalizePrice,
+  normalizeType,
+  sanitizeId,
+} from '../utils.js';
 
 function createTypesTemplate(currentType, id, isDisabled) {
   return TYPES.map((type) => `
@@ -109,7 +116,7 @@ function createPriceFieldTemplate({ id, basePrice, isDisabled }) {
         id="event-price-${id}"
         type="text"
         name="event-price"
-        value="${basePrice}"
+        value="${normalizePrice(basePrice)}"
         ${isDisabled ? 'disabled' : ''}
       >
     </div>
@@ -154,22 +161,26 @@ function createOffersSection(offersByType = [], selectedOfferIds = []) {
     return '';
   }
 
-  const offersTemplate = offersByType.map((offer) => `
-    <div class="event__offer-selector">
-      <input
-        class="event__offer-checkbox visually-hidden"
-        id="event-offer-${offer.id}"
-        type="checkbox"
-        name="event-offer-${offer.id}"
-        ${selectedOfferIds.includes(offer.id) ? 'checked' : ''}
-      >
-      <label class="event__offer-label" for="event-offer-${offer.id}">
-        <span class="event__offer-title">${he.encode(offer.title)}</span>
-        &plus;&euro;&nbsp;
-        <span class="event__offer-price">${offer.price}</span>
-      </label>
-    </div>
-  `).join('');
+  const offersTemplate = offersByType.map((offer) => {
+    const safeOfferId = sanitizeId(offer.id);
+
+    return `
+      <div class="event__offer-selector">
+        <input
+          class="event__offer-checkbox visually-hidden"
+          id="event-offer-${safeOfferId}"
+          type="checkbox"
+          name="event-offer-${safeOfferId}"
+          ${selectedOfferIds.includes(safeOfferId) ? 'checked' : ''}
+        >
+        <label class="event__offer-label" for="event-offer-${safeOfferId}">
+          <span class="event__offer-title">${he.encode(offer.title)}</span>
+          &plus;&euro;&nbsp;
+          <span class="event__offer-price">${normalizePrice(offer.price)}</span>
+        </label>
+      </div>
+    `;
+  }).join('');
 
   return `
     <section class="event__section event__section--offers">
@@ -231,9 +242,12 @@ function createEditPointTemplate({
     offerIds,
   } = point;
 
+  const safeId = sanitizeId(id) || generateId();
+  const safeType = normalizeType(type);
+
   const headerTemplate = createEditHeaderTemplate({
-    type,
-    id,
+    type: safeType,
+    id: safeId,
     destination,
     allDestinations,
     dateFrom,
