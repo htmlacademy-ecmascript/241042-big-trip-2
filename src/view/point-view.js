@@ -1,6 +1,13 @@
 import AbstractView from '../framework/view/abstract-view.js';
 import he from 'he';
-import { humanizeDay, humanizeTime, getDuration } from '../utils.js';
+import {
+  humanizeDay,
+  humanizeTime,
+  getDuration,
+  normalizeType,
+  normalizePrice,
+  escapeHtml,
+} from '../utils.js';
 
 function createOffersTemplate(offers = []) {
   if (!offers.length) {
@@ -14,7 +21,7 @@ function createOffersTemplate(offers = []) {
         <li class="event__offer">
           <span class="event__offer-title">${he.encode(offer.title)}</span>
           &plus;&euro;&nbsp;
-          <span class="event__offer-price">${offer.price}</span>
+          <span class="event__offer-price">${normalizePrice(offer.price)}</span>
         </li>
       `).join('')}
     </ul>
@@ -23,25 +30,26 @@ function createOffersTemplate(offers = []) {
 
 function createPointTemplate({ point, destination, offers }) {
   const { basePrice, dateFrom, dateTo, isFavorite, type } = point;
+  const safeType = normalizeType(type);
 
   return `
     <li class="trip-events__item">
       <div class="event">
-        <time class="event__date" datetime="${dateFrom}">${humanizeDay(dateFrom)}</time>
+        <time class="event__date" datetime="${escapeHtml(dateFrom)}">${humanizeDay(dateFrom)}</time>
         <div class="event__type">
-          <img class="event__type-icon" width="42" height="42" src="img/icons/${type}.png" alt="Event type icon">
+          <img class="event__type-icon" width="42" height="42" src="img/icons/${safeType}.png" alt="Event type icon">
         </div>
-        <h3 class="event__title">${type} ${destination?.name ? he.encode(destination.name) : ''}</h3>
+        <h3 class="event__title">${safeType} ${destination?.name ? he.encode(destination.name) : ''}</h3>
         <div class="event__schedule">
           <p class="event__time">
-            <time class="event__start-time" datetime="${dateFrom}">${humanizeTime(dateFrom)}</time>
+            <time class="event__start-time" datetime="${escapeHtml(dateFrom)}">${humanizeTime(dateFrom)}</time>
             &mdash;
-            <time class="event__end-time" datetime="${dateTo}">${humanizeTime(dateTo)}</time>
+            <time class="event__end-time" datetime="${escapeHtml(dateTo)}">${humanizeTime(dateTo)}</time>
           </p>
           <p class="event__duration">${getDuration(dateFrom, dateTo)}</p>
         </div>
         <p class="event__price">
-          &euro;&nbsp;<span class="event__price-value">${basePrice}</span>
+          &euro;&nbsp;<span class="event__price-value">${normalizePrice(basePrice)}</span>
         </p>
         ${createOffersTemplate(offers)}
         <button class="event__favorite-btn ${isFavorite ? 'event__favorite-btn--active' : ''}" type="button">

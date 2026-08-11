@@ -1,8 +1,16 @@
-const TYPES = [
-  'taxi', 'bus', 'train', 'flight',
-  'check-in', 'sightseeing', 'ship',
-  'drive', 'restaurant'
-];
+const PointType = {
+  TAXI: 'taxi',
+  BUS: 'bus',
+  TRAIN: 'train',
+  FLIGHT: 'flight',
+  CHECK_IN: 'check-in',
+  SIGHTSEEING: 'sightseeing',
+  SHIP: 'ship',
+  DRIVE: 'drive',
+  RESTAURANT: 'restaurant',
+};
+
+const TYPES = Object.values(PointType);
 
 const EMPTY_POINT = {
   basePrice: 0,
@@ -33,4 +41,4 @@ const SortType = {
   PRICE: 'price',
 };
 
-export { TYPES, EMPTY_POINT, FilterType, SortType, UserAction };
+export { PointType, TYPES, EMPTY_POINT, FilterType, SortType, UserAction };
